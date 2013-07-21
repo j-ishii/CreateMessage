@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="jp">
+    <head>
+        <title>Record your video message</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <link type="text/css" href="https://fonts.googleapis.com/css?family=Inconsolata" />
+        <style>
+            html { background: #eee; }
+
+            body {
+                font-family: "Inconsolata", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", monospace;
+                font-size: 1.2em;
+                line-height: 1.2em;
+                margin: 0;
+            }
+
+            body {
+                background: #fff;
+                border: 1px solid;
+                border-color: #ddd #aaa #aaa #ddd;
+                border-radius: 5px;
+                margin: .5em auto 0 auto;
+                padding: .8em;
+                padding-top: 0;
+            }
+
+            h1, h2 {
+                border-bottom: 1px solid black;
+                display: inline;
+                font-weight: normal;
+                line-height: 36px;
+                padding: 0 0 3px 0;
+            }
+
+            h3{
+                display: inline;
+                font-weight: normal;
+                line-height: 36px;
+                padding: 0 0 3px 0;
+            }
+
+            h1 {
+                background: rgb(238, 238, 238);
+                border-bottom-width: 2px;
+                display: block;
+                margin-top: 0;
+                padding: .3em;
+                text-align: center;
+            }
+
+            :-moz-any-link:focus {
+                border: 0;
+                color: #000;
+            }
+
+            ::selection { background: #ccc; }
+
+            ::-moz-selection { background: #ccc; }
+
+            button {
+                -moz-border-radius: 3px;
+                -moz-transition: none;
+                -webkit-transition: none;
+                background: #0370ea;
+                background: -moz-linear-gradient(top, #008dfd 0, #0370ea 100%);
+                background: -webkit-linear-gradient(top, #008dfd 0, #0370ea 100%);
+                border: 1px solid #076bd2;
+                border-radius: 3px;
+                color: #fff;
+                display: inline-block;
+                font-family: inherit;
+                font-size: .8em;
+                line-height: 1.3;
+                padding: 5px 12px;
+                text-align: center;
+                text-shadow: 1px 1px 1px #076bd2;
+            }
+
+            button:hover { background: rgb(9, 147, 240); }
+
+            button:active { background: rgb(10, 118, 190); }
+
+            button[disabled] {
+                background: none;
+                border: 1px solid rgb(187, 181, 181);
+                color: gray;
+                text-shadow: none;
+            }
+
+            #remote-media-streams video { width: 10em; }
+
+            #local-media-stream video { width: 34em; }
+
+            footer { text-align: center; }
+
+            code {
+                color: rgb(204, 14, 14);
+                font-family: inherit;
+            }
+
+            audio, video { vertical-align: bottom; }
+
+            pre {
+                border-left: 2px solid red;
+                margin-left: 2em;
+                padding-left: 1em;
+            }
+
+            a {
+                color: #2844FA;
+                text-decoration: none;
+            }
+
+            a:hover, a:focus { color: #1B29A4; }
+
+            a:active { color: #000; }
+
+            :-moz-any-link:focus {
+                border: 0;
+                color: #000;
+            }
+
+            ::selection { background: #ccc; }
+
+            ::-moz-selection { background: #ccc; }
+        </style>
+       <script src="./lib/RecordRTC.js"></script>
+        <script src="./lib/gif-recorder.js"> </script>
+        <script src="./lib/audio-recorder.js"> </script>
+    </head>
+    <body>
+        <div>
+            <h3>
+                1.Turn on your webcam by 'Allow video camera access'.
+            </br>
+                2.You can start recording your message for 6 seconds by 'Record video'.
+            </br>
+                3.Please check your movie and send your message video or retake your video from Step1.
+            </br>
+            </h3>
+            <button id="enable-video">
+                Allow video camera access</button>
+            </br>
+            <button id="record-video">
+                Record Video</button>
+            <button id="stop-recording-video" disabled>
+                Stop Recording Video</button>
+            <h2 id="video-url-preview">
+            </h2>
+        </br>
+        <h3 id="rt">Remaining time:</h3>
+            <h3 id="timer">
+                6</h3>
+            </br>
+            <video id="client-video" autoplay loop controls muted width=320 height=240></video>
+            <video id="recorded-video" controls muted width=320 height=240></video>
+            </br>
+            <button id="send">Send your movie!</button>
+        </br>
+            <label id="lbname">Your name:</label><input type="text" id="fullname" name="fullname" size="40">
+        </br>
+            <label id="lbmessage">Message:</label><input type="text" id="message" name="message" size="40">
+        </br>
+            <button id="upload">upload from your library</button>
+        <p id="progress" style="width:0;height:10px;background-color:blue">
+        </div>
+        <script>
+            video = document.getElementById('client-video');
+            text1 = document.getElementById('rt');
+            text2 = document.getElementById('timer');
+            preview = document.getElementById('recorded-video');
+            bt_send = document.getElementById('send');
+            bt_stop = document.getElementById('stop-recording-video');
+            lb_name = document.getElementById('lbname');
+            fullname = document.getElementById('fullname');
+            lb_message = document.getElementById('lbmessage');
+            message = document.getElementById('message');
+            bt_upload = document.getElementById('upload');
+
+            video.style.display = "none";
+            text1.style.visibility = "hidden";
+            text2.style.visibility = "hidden";
+            preview.style.visibility = "hidden";
+            bt_send.style.visibility = "hidden";
+            bt_stop.style.display = "none";
+            lb_name.style.display = "none";
+            fullname.style.display = "none";
+            lb_message.style.display = "none";
+            message.style.display = "none";
+            bt_upload.style.display = "none";
+            videoConstraints = {
+                audio: false,
+                video: {
+                    mandatory: { },
+                    optional: []
+                }
+            };
+
+            audioConstraints = {
+                audio: true,
+                video: false
+            };
+            var audioStream, videoStream;
+        </script>
+        <script>
+
+
+            function getByID(id) {
+                return document.getElementById(id);
+            }
+
+            var enableVideo = getByID('enable-video'),
+                recordVideo = getByID('record-video'),
+                stopRecordingVideo = getByID('stop-recording-video'),
+                sendVideodata = getByID('send');
+
+            var recorder;
+
+            enableVideo.onclick = function() {
+                    navigator.webkitGetUserMedia({video:true}, function(localMediaStream){
+                        videoStream = localMediaStream;
+                        preview.style.visibility = "hidden";
+                        video.style.display = "";
+                        text1.style.visibility = "visible";
+                        text2.style.visibility = "visible";
+                        bt_send.style.visibility = "hidden";
+                        lb_name.style.display = "none";
+                        fullname.style.display = "none";
+                        lb_message.style.display = "none";
+                        message.style.display = "none";
+                        document.getElementById('timer').innerHTML = 6;
+                        video.src = window.webkitURL.createObjectURL(videoStream);
+                    },function(){
+                        alert('Webcam access is denied.');
+                        lb_name.style.display = "";
+                        fullname.style.display = "";
+                        lb_message.style.display = "";
+                        message.style.display = "";
+                        bt_upload.style.display = "";
+                    });
+            };
+
+
+
+            recordVideo.onclick = function() {
+                if(recordVideoOrGIF()){
+                    startcountdown();
+                }
+            };
+
+
+            function recordVideoOrGIF() {
+                var ret;
+                if (!videoStream){
+                    alert('Please press \' Allow video camera access \' button on upperside.');
+                    ret = false;
+                }
+                else {
+                    
+                    recorder = RecordRTC({
+                            video: video
+                        });
+                   recorder.recordVideo();
+                
+
+                window.isAudio = false;
+
+                recordVideo.disabled = true;
+                stopRecordingVideo.disabled = false;
+                ret = true;
+                }
+                return ret;
+            }
+
+            stopRecordingVideo.onclick = function() {
+                clearInterval(timer);
+                this.disabled = true;
+                recordVideo.disabled = false;
+                video.style.display = "none";
+                preview.style.visibility = "visible";
+                bt_send.style.visibility = "visible";
+                lb_name.style.display = "";
+                fullname.style.display = "";
+                lb_message.style.display = "";
+                message.style.display = "";
+                videoStream.stop();
+                videoStream = null;
+
+                recorder.stopVideo(function(url) {
+                    blob = recorder.getBlob();
+                   // alert(JSON.stringify(recorder.getBlob()));
+                    //document.getElementById('video-url-preview').innerHTML = '<a href="' + url + '" target="_blank">open video.webm</a>';
+                    document.getElementById('recorded-video').innerHTML = '<source src="' + url + '">';
+
+                });
+            };
+
+            var timer;
+
+            function startcountdown(){
+                timer = setInterval("countdown()",1000);
+            }
+
+            function countdown(){
+                var temp = document.getElementById('timer').innerHTML;
+                if(recordVideo.disabled == true && temp != 1){
+                    document.getElementById('timer').innerHTML = temp - 1;
+                }else if(temp == 1){
+                    document.getElementById('timer').innerHTML = temp - 1;
+                    clearInterval(timer);
+                    stopRecordingVideo.disabled = true;
+                    recordVideo.disabled = false;
+                    video.style.display = "none";
+                    preview.style.visibility = "visible";
+                    bt_send.style.visibility = "visible";
+                    lb_name.style.display = "";
+                    fullname.style.display = "";
+                    lb_message.style.display = "";
+                    message.style.display = "";
+                    videoStream.stop();
+                    videoStream = null;
+
+                    recorder.stopVideo(function(url) {
+                        blob = recorder.getBlob();
+                       // alert(JSON.stringify(recorder.getBlob()));
+                       // document.getElementById('video-url-preview').innerHTML = '<a href="' + url + '" target="_blank">open video.webm</a>';
+                       document.getElementById('recorded-video').innerHTML = '<source src="' + url + '">';
+                    });
+                }
+            }
+
+            sendVideodata.onclick = function() {
+                blob = recorder.getBlob();
+                send_fullname = fullname.value;
+                send_message = message.value;
+
+                
+                formData = new FormData();
+                //key = Math.round(new Date().getTime() / 1000);
+                //key = 'movieblob';
+                
+                formData.append('fullname', send_fullname);
+                formData.append('message', send_message);
+                formData.append('video', blob, Math.round(new Date().getTime() / 1000));
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', './submit.php', true);
+                //xhr.setRequestHeader('Content-Type', 'multipart/form-data; boundary=----');
+                xhr.onprogress = function(e){
+                    //document.getElementById('progress').style.width = ((e.loaded / e.total) * 10 + "%");
+                }
+                xhr.onload = function(e) {
+                    //document.getElementById('progress').style.width = '0px';
+                    alert('upload complete!');
+                    document.getElementById('timer').innerHTML = xhr.responseText;
+                };
+                xhr.send(formData);
+
+                return false;
+ 
+            };
+
+
+
+        </script>
+        <br />
+        <br />
+    </body>
+</html>
