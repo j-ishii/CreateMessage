@@ -164,10 +164,14 @@
         </br>
             <label id="lbmessage">Message:</label><input type="text" id="message" name="message" size="40">
         </br>
-            <button id="upload">upload from your library</button>
+            <input type="file" id="upload" name="upload" accept="video/*; capture=camera">
+        </br>
+            <button id="submit">upload from your library</button>
         <p id="progress" style="width:0;height:10px;background-color:blue">
         </div>
         <script>
+            enablevideo = document.getElementById('enable-video');
+            recordvideo = document.getElementById('record-video');
             video = document.getElementById('client-video');
             text1 = document.getElementById('rt');
             text2 = document.getElementById('timer');
@@ -178,7 +182,8 @@
             fullname = document.getElementById('fullname');
             lb_message = document.getElementById('lbmessage');
             message = document.getElementById('message');
-            bt_upload = document.getElementById('upload');
+            upload = document.getElementById('upload');
+            bt_submit = document.getElementById('submit');
 
             video.style.display = "none";
             text1.style.visibility = "hidden";
@@ -190,7 +195,8 @@
             fullname.style.display = "none";
             lb_message.style.display = "none";
             message.style.display = "none";
-            bt_upload.style.display = "none";
+            upload.style.display = "none";
+            bt_submit.style.display = "none";
             videoConstraints = {
                 audio: false,
                 video: {
@@ -206,6 +212,21 @@
             var audioStream, videoStream;
         </script>
         <script>
+
+            if (!navigator.webkitGetUserMedia) {
+                enablevideo.style.display = "none";
+                preview.style.display = "none";
+                recordvideo.style.display = "none";
+                text1.style.display = "none";
+                text2.style.display = "none";
+                lb_name.style.display = "";
+                fullname.style.display = "";
+                lb_message.style.display = "";
+                message.style.display = "";
+                upload.style.display = "";
+                bt_submit.style.display = "";
+            }
+
 
 
             function getByID(id) {
@@ -239,7 +260,8 @@
                         fullname.style.display = "";
                         lb_message.style.display = "";
                         message.style.display = "";
-                        bt_upload.style.display = "";
+                        upload.style.display = "";
+                        bt_submit.style.display = "";
                     });
             };
 
@@ -342,9 +364,11 @@
                 //key = Math.round(new Date().getTime() / 1000);
                 //key = 'movieblob';
                 
+                formData.append('flag', 1);
                 formData.append('fullname', send_fullname);
                 formData.append('message', send_message);
-                formData.append('video', blob, Math.round(new Date().getTime() / 1000));
+                var filename =  Math.round(new Date().getTime() / 1000) + "_" + Math.floor(Math.random() * 1000);
+                formData.append('video', blob, filename);
 
                 var xhr = new XMLHttpRequest();
                 xhr.open('POST', './submit.php', true);
@@ -354,13 +378,46 @@
                 }
                 xhr.onload = function(e) {
                     //document.getElementById('progress').style.width = '0px';
-                    alert('upload complete!');
-                    document.getElementById('timer').innerHTML = xhr.responseText;
+                    alert(xhr.responseText);
                 };
                 xhr.send(formData);
 
-                return false;
+                //return false;
  
+            };
+
+            bt_submit.onclick = function() {
+
+                send_fullname = fullname.value;
+                send_message = message.value;
+                send_file = upload.files[0];
+
+                if(send_file){
+                
+                    formData = new FormData();
+
+                    formData.append('flag', 0);
+                    formData.append('fullname', send_fullname);
+                    formData.append('message', send_message);
+                    var filename = Math.round(new Date().getTime() / 1000) + "_" + Math.floor(Math.random() * 1000);
+                    formData.append('video', send_file, filename);
+                    
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', './submit.php', true);
+                    //xhr.setRequestHeader('Content-Type', 'multipart/form-data; boundary=----');
+                    xhr.onprogress = function(e){
+                        //document.getElementById('progress').style.width = ((e.loaded / e.total) * 10 + "%");
+                    }
+                    xhr.onload = function(e) {
+                        //document.getElementById('progress').style.width = '0px';
+                        alert(xhr.responseText);
+                    };
+                    xhr.send(formData);
+                }else{
+                    alert("no file uploaded error!");
+                }
+
+                //return false;
             };
 
 
